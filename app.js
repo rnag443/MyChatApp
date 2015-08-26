@@ -1,48 +1,43 @@
-var express = require('express'), 
-    http = require('http'), 
-    path = require('path')
-  
+var express=require('express');
+var bodyParser=require('body-parser')
+var app=express();
 
-var app = express();
+app.use(bodyParser.urlencoded({
+	extended:true
+}));
 
-app.configure(function() {
-    app.set('port', process.env.PORT || 3000);
-    app.use(express.static(path.join(__dirname, 'public')));
+//creating a middleware
+
+function authUser(req,res,next){
+
+    var user={
+      name:'XYZ',
+      admin:true
+    };
+
+    req.user=user;
+    next();
+}
+
+app.get('/',function(req,res){
+console.log(req.user);
+res.send({
+
+"foo":"bar"
 });
 
-app.configure('development', function() {
-    app.use(express.errorHandler());
 });
 
-// Set up express
-var server = http.createServer(app).listen(app.get('port'), function(){
-    console.log("Express server listening on port " + app.get('port'));
+app.post('/doStuff',authUser,function(req,res){
+
+    var param=req.param('foo');
+
+    res.send({
+    	foo:param,
+    	isAdm:req.user.admin
+    })
+
 });
 
-// Set up socket.io
-var io = require('socket.io').listen(server);
-
-// Handle socket traffic
-io.sockets.on('connection', function (socket) {
-    
-    // Set the nickname property for a given client
-    socket.on('nick', function(nick) {
-        socket.set('nickname', nick);
-    });
-
-    // Relay chat data to all clients
-    socket.on('chat', function(data) {
-        socket.get('nickname', function(err, nick) {
-            var nickname = err ? 'Anonymous' : nick;
-
-            var payload = {
-                message: data.message,
-                nick: nickname
-            };
-           // io.sockets.emit('chat',payload);
-
-            socket.emit('chat',payload);
-            socket.broadcast.emit('chat', payload);
-        });
-    });
-});
+app.listen(3000);
+console.log("Listening on this port " + 3000);
